@@ -1,0 +1,219 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with roles and cell memberships",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "roles": { "type": "array", "items": { "type": "string" } },
+        "prayerCellIds": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "roles"]
+    },
+    "Invite": {
+      "title": "Invite",
+      "description": "Role-based invite for new or existing users",
+      "type": "object",
+      "properties": {
+        "token": { "type": "string" },
+        "email": { "type": "string" },
+        "assignedRoles": { "type": "array", "items": { "type": "string" } },
+        "cellId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "expired"] },
+        "invitedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["token", "email", "assignedRoles", "status"]
+    },
+    "PrayerCell": {
+      "title": "Prayer Cell",
+      "description": "Small group for prayer and bible study",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["Believers", "Evangelical", "Mixed"] },
+        "genderType": { "type": "string", "enum": ["Boys", "Girls", "Mixed"] },
+        "category": { "type": "string", "enum": ["Online", "Offline"] },
+        "place": { "type": "string" },
+        "parentIds": { "type": "array", "items": { "type": "string" } },
+        "leaderIds": { "type": "array", "items": { "type": "string" } },
+        "memberIds": { "type": "array", "items": { "type": "string" } },
+        "prayerCellSecretaryId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "type", "memberIds"]
+    },
+    "CellMeeting": {
+      "title": "Cell Meeting",
+      "description": "Weekly prayer cell gathering",
+      "type": "object",
+      "properties": {
+        "cellId": { "type": "string" },
+        "topic": { "type": "string" },
+        "bibleStudyType": { "type": "string", "enum": ["EBS", "BBS"] },
+        "date": { "type": "string", "format": "date" },
+        "time": { "type": "string" },
+        "venue": { "type": "string" },
+        "meetLink": { "type": "string" },
+        "isOnline": { "type": "boolean" },
+        "attendance": { "type": "object", "additionalProperties": { "type": "boolean" } },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["cellId", "date", "attendance"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "Message in cell or committee chat",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "content": { "type": "string" },
+        "type": { "type": "string", "enum": ["text", "image", "qt"] },
+        "attachmentUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["senderId", "senderName", "content", "createdAt"]
+    },
+    "FinancialRecord": {
+      "title": "Financial Record",
+      "description": "Monthly contribution or event expense",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["contribution", "expense"] },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "amount": { "type": "number" },
+        "month": { "type": "string" },
+        "year": { "type": "number" },
+        "description": { "type": "string" },
+        "eventId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "amount", "createdAt"]
+    },
+    "CommitteeEvent": {
+      "title": "Committee Event",
+      "description": "Large scale event planned by President",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "speaker": { "type": "string" },
+        "theme": { "type": "string" },
+        "dateTime": { "type": "string", "format": "date-time" },
+        "venue": { "type": "string" },
+        "planDetails": { "type": "string" },
+        "attendeeCount": { "type": "number" },
+        "financeSummary": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "dateTime", "venue"]
+    },
+    "DawnDuskPrayer": {
+      "title": "Dawn Dusk Prayer",
+      "description": "Daily committee prayer sessions",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["dawn", "dusk"] },
+        "date": { "type": "string", "format": "date" },
+        "meetLink": { "type": "string" },
+        "attendance": { "type": "object", "additionalProperties": { "type": "boolean" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "date", "attendance"]
+    },
+    "QuietTime": {
+      "title": "Quiet Time",
+      "description": "Daily quiet time shared by individual members",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "content": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "isShared": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "date"]
+    },
+    "CollegeRecord": {
+      "title": "College Record",
+      "description": "Information about regional colleges",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "location": { "type": "string" },
+        "details": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name"]
+    },
+    "AnnualPlan": {
+      "title": "Annual Plan",
+      "description": "Yearly strategy and goals",
+      "type": "object",
+      "properties": {
+        "year": { "type": "number" },
+        "content": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["year", "content"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "invites/{inviteId}": {
+      "schema": "Invite",
+      "description": "Role-bound invites"
+    },
+    "prayerCells/{cellId}": {
+      "schema": "PrayerCell",
+      "description": "Prayer group entities"
+    },
+    "prayerCells/{cellId}/meetings/{meetingId}": {
+      "schema": "CellMeeting",
+      "description": "Meetings within a cell"
+    },
+    "prayerCells/{cellId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Group chat for cells"
+    },
+    "committee/finances/records/{recordId}": {
+      "schema": "FinancialRecord",
+      "description": "Financial logs"
+    },
+    "committee/events/records/{eventId}": {
+      "schema": "CommitteeEvent",
+      "description": "Planned events"
+    },
+    "committee/dawnDusk/records/{recordId}": {
+      "schema": "DawnDuskPrayer",
+      "description": "Dawn/Dusk prayer logs"
+    },
+    "committee/chat/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Committee internal chat"
+    },
+    "committee/records/colleges": {
+      "schema": "CollegeRecord",
+      "description": "Regional college directory"
+    },
+    "committee/records/annualPlan": {
+      "schema": "AnnualPlan",
+      "description": "Strategy doc"
+    },
+    "users/{userId}/quietTimes/{qtId}": {
+      "schema": "QuietTime",
+      "description": "Private QT log"
+    }
+  }
+}
