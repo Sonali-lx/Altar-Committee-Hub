@@ -96,6 +96,13 @@ export const dbService = {
   },
 
   // Invites
+  subscribeInvites(callback: (invites: any[]) => void) {
+    const q = query(collection(db, 'invites'), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (e) => handleFirestoreError(e, OperationType.LIST, 'invites'));
+  },
+
   async createInvite(invite: any) {
     try {
       const docRef = await addDoc(collection(db, 'invites'), { ...invite, createdAt: new Date().toISOString() });

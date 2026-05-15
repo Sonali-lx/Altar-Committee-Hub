@@ -9,12 +9,15 @@ import { AdminPanel } from './components/admin/AdminPanel';
 import { FinanceManager } from './components/finance/FinanceManager';
 import { QuietTime } from './components/quiettime/QuietTime';
 import { RecordsManager } from './components/records/RecordsManager';
+import { EventList } from './components/events/EventList';
+import { CreateCellModal } from './components/cells/CreateCellModal';
 import { AnimatePresence, motion } from 'motion/react';
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
+  const [showCreateCell, setShowCreateCell] = useState(false);
 
   if (loading) {
     return (
@@ -52,10 +55,12 @@ const AppContent: React.FC = () => {
           >
             <CellList 
               onSelectCell={(id) => setSelectedCellId(id)} 
-              onNewCell={() => setActiveTab('admin')} 
+              onNewCell={() => setShowCreateCell(true)} 
             />
           </motion.div>
         );
+      case 'events':
+        return <EventList />;
       case 'treasury':
         return <FinanceManager />;
       case 'qt':
@@ -66,18 +71,26 @@ const AppContent: React.FC = () => {
         return <AdminPanel />;
       case 'dashboard':
       default:
-        return <Dashboard onNewCell={() => setActiveTab('cells')} />;
+        return <Dashboard onNewCell={() => setShowCreateCell(true)} />;
     }
   };
 
   return (
-    <Shell activeTab={activeTab} setActiveTab={(t) => { setActiveTab(t); setSelectedCellId(null); }}>
-      <AnimatePresence mode="wait">
-        <div className="pb-12">
-          {renderContent()}
-        </div>
-      </AnimatePresence>
-    </Shell>
+    <div className="relative">
+      <Shell activeTab={activeTab} setActiveTab={(t) => { setActiveTab(t); setSelectedCellId(null); }}>
+        <AnimatePresence mode="wait">
+          <div className="pb-12">
+            {renderContent()}
+          </div>
+        </AnimatePresence>
+      </Shell>
+      {showCreateCell && (
+        <CreateCellModal 
+          onClose={() => setShowCreateCell(false)} 
+          onCreated={(id) => { setShowCreateCell(false); setSelectedCellId(id); setActiveTab('cells'); }} 
+        />
+      )}
+    </div>
   );
 };
 
