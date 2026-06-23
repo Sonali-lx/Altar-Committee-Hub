@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { EditProfileModal } from '../profile/EditProfileModal';
 import { 
   Users, 
   Calendar, 
@@ -49,6 +50,11 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, isActive, 
 export const Shell: React.FC<{ children: React.ReactNode, activeTab: string, setActiveTab: (t: string) => void }> = ({ children, activeTab, setActiveTab }) => {
   const { user, profile, logOut, hasRole } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+
+  React.useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [activeTab]);
 
   const handleTabClick = (tab: string) => {
     setActiveTab(tab);
@@ -75,36 +81,18 @@ export const Shell: React.FC<{ children: React.ReactNode, activeTab: string, set
           >
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <span className="font-bold text-lg md:text-xl tracking-tight text-slate-800">COMMITTEE.HUB</span>
-          <nav className="hidden md:flex gap-6">
-            <button 
-              onClick={() => handleTabClick('cells')}
-              className={`text-sm font-medium transition-colors ${activeTab === 'cells' ? 'text-slate-900 border-b-2 border-slate-900 pb-5 pt-5' : 'text-slate-400 hover:text-slate-600 pb-5 pt-5'}`}
-            >
-              Prayer Cells
-            </button>
-            <button 
-              onClick={() => handleTabClick('events')}
-              className={`text-sm font-medium transition-colors ${activeTab === 'events' ? 'text-slate-900 border-b-2 border-slate-900 pb-5 pt-5' : 'text-slate-400 hover:text-slate-600 pb-5 pt-5'}`}
-            >
-              Events
-            </button>
-            {isCommittee && (
-              <button 
-                onClick={() => handleTabClick('records')}
-                className={`text-sm font-medium transition-colors ${activeTab === 'records' ? 'text-slate-900 border-b-2 border-slate-900 pb-5 pt-5' : 'text-slate-400 hover:text-slate-600 pb-5 pt-5'}`}
-              >
-                Records
-              </button>
-            )}
-          </nav>
+          <span className="font-bold text-lg md:text-xl tracking-tight text-slate-800">ALTAR</span>
         </div>
         <div className="flex items-center gap-4">
           <div className="hidden md:flex flex-col items-end mr-2">
             <span className="text-xs font-bold text-slate-800 uppercase tracking-tighter">{profile?.name}</span>
             <span className="text-[10px] text-slate-400 uppercase tracking-widest">{profile?.roles?.[0]?.replace('_', ' ')}</span>
           </div>
-          <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-slate-100 flex items-center justify-center border border-slate-100 group hover:border-slate-300 transition-all cursor-pointer overflow-hidden">
+          <div 
+            onClick={() => setIsEditProfileOpen(true)}
+            className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-slate-100 flex items-center justify-center border border-slate-100 group hover:border-slate-300 transition-all cursor-pointer overflow-hidden"
+            title="Edit Profile"
+          >
             {user?.photoURL ? (
               <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
@@ -147,7 +135,46 @@ export const Shell: React.FC<{ children: React.ReactNode, activeTab: string, set
             </div>
           </div>
 
-          <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4 px-2">Navigation</h3>
+          <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 px-2">Personal Area</h3>
+          
+          <SidebarItem 
+            icon={BookOpen} 
+            label="DashBoard" 
+            isActive={activeTab === 'dashboard'} 
+            onClick={() => handleTabClick('dashboard')} 
+          />
+
+          <SidebarItem 
+            icon={SunMoon} 
+            label="Quiet Time" 
+            isActive={activeTab === 'qt'} 
+            onClick={() => handleTabClick('qt')} 
+          />
+
+          <SidebarItem 
+            icon={MessageSquare} 
+            label="Prayer" 
+            isActive={activeTab === 'prayer'} 
+            onClick={() => handleTabClick('prayer')} 
+          />
+
+          <SidebarItem 
+            icon={BookOpen} 
+            label="Bible Study" 
+            isActive={activeTab === 'study'} 
+            onClick={() => handleTabClick('study')} 
+          />
+
+          <SidebarItem 
+            icon={Database} 
+            label="Journal" 
+            isActive={activeTab === 'journal'} 
+            onClick={() => handleTabClick('journal')} 
+          />
+
+          <div className="my-2 border-t border-slate-100" />
+          
+          <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 px-2">Community Space</h3>
           
           <SidebarItem 
             icon={Users} 
@@ -164,15 +191,29 @@ export const Shell: React.FC<{ children: React.ReactNode, activeTab: string, set
           />
 
           <SidebarItem 
-            icon={BookOpen} 
-            label="Quiet Time" 
-            isActive={activeTab === 'qt'} 
-            onClick={() => handleTabClick('qt')} 
+            icon={Clock} 
+            label="Dawn/Dusk Prayers" 
+            isActive={activeTab === 'prayers'} 
+            onClick={() => handleTabClick('prayers')} 
           />
 
-          <div className="my-4 border-t border-slate-100" />
+          <SidebarItem 
+            icon={MessageSquare} 
+            label="Fellowship Feed" 
+            isActive={activeTab === 'chat-comm'} 
+            onClick={() => handleTabClick('chat-comm')} 
+          />
+
+          <SidebarItem 
+            icon={MessageSquare} 
+            label="Community Chat" 
+            isActive={activeTab === 'chat-realtime'} 
+            onClick={() => handleTabClick('chat-realtime')} 
+          />
+
+          <div className="my-2 border-t border-slate-100" />
           
-          <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4 px-2">Committee Tools</h3>
+          <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 px-2">Committee Tools</h3>
           
           <SidebarItem 
             icon={DollarSign} 
@@ -180,14 +221,6 @@ export const Shell: React.FC<{ children: React.ReactNode, activeTab: string, set
             isActive={activeTab === 'treasury'} 
             onClick={() => handleTabClick('treasury')}
             roles={[UserRole.TREASURER, UserRole.SECRETARY, UserRole.ADMIN]}
-          />
-
-          <SidebarItem 
-            icon={SunMoon} 
-            label="Dawn/Dusk Prayers" 
-            isActive={activeTab === 'prayers'} 
-            onClick={() => handleTabClick('prayers')}
-            roles={[UserRole.PRAYER_SECRETARY, UserRole.ADMIN, UserRole.SENIOR_ADVISOR]}
           />
 
           <SidebarItem 
@@ -201,8 +234,8 @@ export const Shell: React.FC<{ children: React.ReactNode, activeTab: string, set
           <SidebarItem 
             icon={MessageSquare} 
             label="Committee Chat" 
-            isActive={activeTab === 'chat'} 
-            onClick={() => handleTabClick('chat')}
+            isActive={activeTab === 'chat-cmte'} 
+            onClick={() => handleTabClick('chat-cmte')}
             roles={[UserRole.SENIOR_ADVISOR, UserRole.PRESIDENT, UserRole.SECRETARY, UserRole.TREASURER, UserRole.PRAYER_SECRETARY, UserRole.PRAYER_CELL_SECRETARY, UserRole.ADMIN]}
           />
 
@@ -246,6 +279,11 @@ export const Shell: React.FC<{ children: React.ReactNode, activeTab: string, set
         </div>
         <span className="text-[10px] text-slate-300 font-medium tracking-widest text-right">DESIGNED BY SONALI STUDIO &bull; 2024</span>
       </footer>
+
+      <EditProfileModal 
+        isOpen={isEditProfileOpen} 
+        onClose={() => setIsEditProfileOpen(false)} 
+      />
     </div>
   );
 };

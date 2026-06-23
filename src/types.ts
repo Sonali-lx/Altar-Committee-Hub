@@ -15,8 +15,18 @@ export interface UserProfile {
   uid: string;
   name: string;
   email: string;
+  photoURL?: string;
   roles: UserRole[];
   prayerCellIds: string[];
+  status?: 'student' | 'graduate';
+  usage?: 'personal' | 'community' | 'committee';
+  phone?: string;
+  degree?: string;
+  branch?: string;
+  college?: string;
+  profession?: string;
+  workplace?: string;
+  district?: string;
   createdAt: string;
 }
 
@@ -80,13 +90,55 @@ export interface CommitteeEvent {
   createdAt: string;
 }
 
+export interface Prayer {
+  id: string;
+  userId: string;
+  userName?: string;
+  date: string;
+  type: 'ACTS' | 'Freeform';
+  content?: string;
+  acts?: {
+    adoration?: string;
+    confession?: string;
+    thanksgiving?: string;
+    supplication?: string;
+  };
+  status: 'waiting' | 'answered' | 'confession' | 'conviction' | 'thanksgiving' | 'supplication' | 'general';
+  isShared: boolean;
+  createdAt: string;
+}
+
 export interface QuietTime {
   id: string;
   userId: string;
   date: string;
-  content: string;
+  passage?: string;
+  type: 'ASPECT' | 'Freeform';
+  content?: string;
+  aspect?: {
+    aboutGod?: string;
+    sinsToAvoid?: string;
+    promisesToClaim?: string;
+    examplesToFollow?: string;
+    commandsToObey?: string;
+    theme?: string;
+  };
   imageUrl?: string;
   isShared: boolean;
+  createdAt: string;
+}
+
+export interface JournalEntry {
+  id: string;
+  userId: string;
+  date: string;
+  time?: string;
+  day?: string;
+  title: string;
+  content: string;
+  tags: string[];
+  mood?: string;
+  prayerId?: string;
   createdAt: string;
 }
 

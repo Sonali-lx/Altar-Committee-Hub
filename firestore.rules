@@ -12,7 +12,11 @@ service cloud.firestore {
     function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
-    function getUserRoles() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles; }
+    function getUserRoles() { 
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) 
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles 
+        : []; 
+    }
     function hasRole(role) { return isSignedIn() && getUserRoles().hasAny([role]); }
     function isAdmin() { return hasRole('ADMIN') || request.auth.token.email == 'sonalisjs37@gmail.com'; }
     
@@ -33,7 +37,7 @@ service cloud.firestore {
     }
 
     function isValidPrayerCell(data) {
-      return data.keys().hasAll(['name', 'type', 'memberIds']) &&
+      return data.keys().hasAll(['name', 'memberIds']) &&
              data.name is string && data.name.size() <= 100 &&
              data.memberIds is list && data.memberIds.size() <= 500;
     }
@@ -53,9 +57,33 @@ service cloud.firestore {
         incoming().roles.hasOnly(['CELL_MEMBER']) || isAdmin()
       );
       allow update: if isVerified() && (
-        (request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'prayerCellIds'])) ||
+        (request.auth.uid == userId && !('roles' in incoming().diff(existing()).affectedKeys())) ||
         isAdmin()
       );
+    }
+
+    // Event Collections
+    match /eventCollections/{collectionId} {
+      allow read: if isSignedIn();
+      allow write: if isVerified() && (hasRole('SECRETARY') || isAdmin() || hasRole('PRESIDENT') || hasRole('SENIOR_ADVISOR') || hasRole('CELL_LEADER') || hasRole('CELL_PARENT'));
+    }
+
+    // Events
+    match /events/{eventId} {
+      allow read: if isSignedIn();
+      allow create: if isVerified() && (hasRole('SECRETARY') || isAdmin() || hasRole('PRESIDENT') || hasRole('SENIOR_ADVISOR') || hasRole('CELL_LEADER') || hasRole('CELL_PARENT'));
+      allow update: if isSignedIn();
+      allow delete: if isVerified() && (hasRole('SECRETARY') || isAdmin() || hasRole('PRESIDENT') || hasRole('SENIOR_ADVISOR') || hasRole('CELL_LEADER') || hasRole('CELL_PARENT'));
+    }
+
+    match /colleges/{collegeId} {
+      allow read: if isSignedIn();
+      allow write: if isVerified() && (hasRole('SECRETARY') || isAdmin() || hasRole('PRESIDENT') || hasRole('SENIOR_ADVISOR') || hasRole('CELL_LEADER') || hasRole('CELL_PARENT'));
+    }
+
+    match /membershipRecords/{recordId} {
+      allow read: if isSignedIn();
+      allow write: if isVerified() && (hasRole('SECRETARY') || isAdmin() || hasRole('PRESIDENT') || hasRole('SENIOR_ADVISOR') || hasRole('CELL_LEADER') || hasRole('CELL_PARENT'));
     }
 
     // Invites
@@ -69,38 +97,87 @@ service cloud.firestore {
 
     // Prayer Cells
     match /prayerCells/{cellId} {
-      function isMember() { return isSignedIn() && (request.auth.uid in existing().memberIds); }
-      function isCellAdmin() { return isSignedIn() && (request.auth.uid in existing().parentIds || request.auth.uid in existing().leaderIds); }
+      function isMember() { return isSignedIn() && ('memberIds' in existing() && request.auth.uid in existing().memberIds); }
+      function isCellAdmin() { 
+        return isSignedIn() && (
+          ('parentIds' in existing() && request.auth.uid in existing().parentIds) || 
+          ('leaderIds' in existing() && request.auth.uid in existing().leaderIds)
+        ); 
+      }
       function isCommittee() { return hasRole('PRAYER_CELL_SECRETARY') || hasRole('SENIOR_ADVISOR') || isAdmin(); }
 
-      allow read: if isMember() || isCommittee();
+      allow read: if isSignedIn();
       allow create: if isVerified() && isValidPrayerCell(incoming()) && (hasRole('PRAYER_CELL_SECRETARY') || isAdmin());
       allow update: if isVerified() && (
         isAdmin() || 
         (hasRole('PRAYER_CELL_SECRETARY') && isValidPrayerCell(incoming())) ||
-        (isCellAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['memberIds', 'place', 'category']))
+        (isCellAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['memberIds', 'location', 'isOnline', 'studyType', 'genderType', 'meetingDay', 'meetingTime', 'leaderName', 'leaderEmail', 'parentName', 'parentEmail'])) ||
+        // Self-join logic for members (fallback if they're joining)
+        (isSignedIn() && incoming().diff(existing()).affectedKeys().hasOnly(['memberIds']))
       );
     }
 
     // Meetings
     match /prayerCells/{cellId}/meetings/{meetingId} {
       function cellData() { return get(/databases/$(database)/documents/prayerCells/$(cellId)).data; }
-      function isCellAdmin() { return isSignedIn() && (request.auth.uid in cellData().parentIds || request.auth.uid in cellData().leaderIds); }
+      function isCellAdmin() { 
+        let data = cellData();
+        return isSignedIn() && (
+          ('parentIds' in data && request.auth.uid in data.parentIds) || 
+          ('leaderIds' in data && request.auth.uid in data.leaderIds)
+        ); 
+      }
 
-      allow read: if isSignedIn() && (request.auth.uid in cellData().memberIds || isAdmin());
-      allow create: if isVerified() && isCellAdmin() && isValidMeeting(incoming());
-      allow update: if isVerified() && (
-        (isCellAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['topic', 'attendance', 'venue', 'time', 'meetLink'])) ||
-        // Self-attendance mark
-        (request.auth.uid in cellData().memberIds && incoming().diff(existing()).affectedKeys().hasOnly(['attendance']) && 
-         incoming().attendance[request.auth.uid] == true)
-      );
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     // Messages
     match /prayerCells/{cellId}/messages/{messageId} {
-      function isCellMember() { return request.auth.uid in get(/databases/$(database)/documents/prayerCells/$(cellId)).data.memberIds; }
-      allow read, create: if isVerified() && (isCellMember() || isAdmin());
+      function isCellMember() { 
+        let data = get(/databases/$(database)/documents/prayerCells/$(cellId)).data;
+        return ('memberIds' in data && request.auth.uid in data.memberIds) || isAdmin();
+      }
+      function isCellAdmin() { 
+        let data = get(/databases/$(database)/documents/prayerCells/$(cellId)).data;
+        return isSignedIn() && (
+          ('parentIds' in data && request.auth.uid in data.parentIds) || 
+          ('leaderIds' in data && request.auth.uid in data.leaderIds)
+        ); 
+      }
+      allow read, create: if isSignedIn() && isCellMember();
+      allow update: if isSignedIn() && existing().senderId == request.auth.uid;
+      allow delete: if isSignedIn() && (existing().senderId == request.auth.uid || isAdmin() || isCellAdmin());
+    }
+
+    // Prayers
+    match /dawnDuskPrayers/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isVerified();
+    }
+    
+    // Community Feed
+    match /communityFeed/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isVerified();
+      allow update: if isSignedIn();
+      allow delete: if isAdmin() || (isVerified() && resource.data.authorId == request.auth.uid);
+    }
+    
+    // Community Chat
+    match /communityChat/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isVerified();
+      allow update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+    
+    // Settings
+    match /settings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isVerified() && (hasRole('PRAYER_SECRETARY') || isAdmin() || hasRole('PRESIDENT'));
     }
 
     // Committee Records (Restricted to roles)
@@ -129,9 +206,30 @@ service cloud.firestore {
     }
 
     // Quiet Times
-    match /users/{userId}/quietTimes/{qtId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || existing().isShared == true);
-      allow write: if isVerified() && request.auth.uid == userId;
+    match /quietTimes/{qtId} {
+      allow read: if isSignedIn();
+      allow create: if isVerified() && incoming().userId == request.auth.uid;
+      allow update, delete: if isVerified() && existing().userId == request.auth.uid;
+    }
+
+    // Prayers
+    match /prayers/{prayerId} {
+      allow read: if isSignedIn();
+      allow create: if isVerified() && incoming().userId == request.auth.uid;
+      allow update, delete: if isVerified() && existing().userId == request.auth.uid;
+    }
+
+    // Calendar Notes
+    match /calendarNotes/{noteId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isVerified() && incoming().userId == request.auth.uid;
+      allow update: if isVerified() && existing().userId == request.auth.uid && incoming().userId == request.auth.uid;
+      allow delete: if isVerified() && existing().userId == request.auth.uid;
+    }
+
+    // Journals
+    match /journals/{document=**} {
+      allow read, write: if isSignedIn();
     }
   }
 }
