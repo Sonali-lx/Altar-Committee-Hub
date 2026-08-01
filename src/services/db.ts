@@ -117,6 +117,7 @@ export const dbService = {
       return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     } catch (e) {
       handleFirestoreError(e, OperationType.LIST, "prayerCells");
+      return [];
     }
   },
 
@@ -142,6 +143,54 @@ export const dbService = {
     } catch (e) {
       console.error("Failed to join by invite", e);
       return null;
+    }
+  },
+
+  async getJoinRequests(userId: string) {
+    try {
+      const q = query(collection(db, "joinRequests"), where("userId", "==", userId));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.LIST, "joinRequests");
+      return [];
+    }
+  },
+
+  async getCellJoinRequests(cellId: string) {
+    try {
+      const q = query(collection(db, "joinRequests"), where("cellId", "==", cellId), where("status", "==", "pending"));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.LIST, "joinRequests");
+      return [];
+    }
+  },
+
+  async createJoinRequest(cellId: string, profile: any) {
+    try {
+      const docRef = await addDoc(collection(db, "joinRequests"), {
+        cellId,
+        userId: profile.uid,
+        userName: profile.name,
+        email: profile.email,
+        phone: profile.phone || '',
+        college: profile.college || '',
+        status: "pending",
+        createdAt: new Date().toISOString()
+      });
+      return docRef.id;
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, "joinRequests");
+    }
+  },
+
+  async updateJoinRequest(requestId: string, status: 'approved' | 'rejected') {
+    try {
+      await updateDoc(doc(db, "joinRequests", requestId), { status });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `joinRequests/${requestId}`);
     }
   },
 
@@ -538,6 +587,18 @@ export const dbService = {
       return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     } catch (e) {
       handleFirestoreError(e, OperationType.LIST, "committee/finances/records");
+    }
+  },
+
+  async addFinanceRecord(data: any) {
+    try {
+      const docRef = await addDoc(collection(db, "committee/finances/records"), {
+        ...data,
+        createdAt: new Date().toISOString(),
+      });
+      return docRef.id;
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, "committee/finances/records");
     }
   },
 

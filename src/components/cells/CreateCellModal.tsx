@@ -9,6 +9,7 @@ interface CreateCellModalProps {
 
 export const CreateCellModal: React.FC<CreateCellModalProps> = ({ onClose, onCreated }) => {
   const [name, setName] = useState('');
+  const [region, setRegion] = useState('');
   const [startDate, setStartDate] = useState('');
   const [isOnline, setIsOnline] = useState(false);
   const [location, setLocation] = useState('');
@@ -38,6 +39,7 @@ export const CreateCellModal: React.FC<CreateCellModalProps> = ({ onClose, onCre
     try {
       const cellId = await dbService.createPrayerCell({
         name: name || null,
+        region: region || null,
         startDate: startDate || null,
         isOnline,
         location: isOnline ? null : location || null,
@@ -85,16 +87,29 @@ export const CreateCellModal: React.FC<CreateCellModalProps> = ({ onClose, onCre
 
         <div className="p-6 overflow-y-auto">
           <form id="create-cell-form" onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cell Name</label>
-              <input 
-                type="text" 
-                required
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="e.g. Hope Valley Cell"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all font-medium text-slate-900"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cell Name</label>
+                <input 
+                  type="text" 
+                  required
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="e.g. Hope Valley Cell"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all font-medium text-slate-900"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Region</label>
+                <input 
+                  type="text" 
+                  value={region}
+                  onChange={e => setRegion(e.target.value)}
+                  placeholder="e.g. North Zone"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all font-medium text-slate-900"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

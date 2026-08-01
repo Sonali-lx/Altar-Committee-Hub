@@ -164,6 +164,22 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["year", "content"]
+    },
+    "JoinRequest": {
+      "title": "Join Request",
+      "description": "Request to join a prayer cell",
+      "type": "object",
+      "properties": {
+        "cellId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "college": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["cellId", "userId", "userName", "email", "status", "createdAt"]
     }
   },
   "firestore": {
@@ -214,6 +230,10 @@
     "users/{userId}/quietTimes/{qtId}": {
       "schema": "QuietTime",
       "description": "Private QT log"
+    },
+    "joinRequests/{requestId}": {
+      "schema": "JoinRequest",
+      "description": "Requests to join prayer cells"
     }
   }
 }

@@ -33,6 +33,7 @@ export interface UserProfile {
 export interface PrayerCell {
   id: string;
   name: string;
+  region?: string;
   type: 'Believers' | 'Evangelical' | 'Mixed';
   genderType: 'Boys' | 'Girls' | 'Mixed';
   category: 'Online' | 'Offline';
@@ -59,6 +60,11 @@ export interface CellMeeting {
   createdAt: string;
 }
 
+export interface MemberContribution {
+  name: string;
+  amount: number;
+}
+
 export enum FinancialRecordType {
   CONTRIBUTION = 'contribution',
   EXPENSE = 'expense',
@@ -74,6 +80,10 @@ export interface FinancialRecord {
   year?: number;
   description?: string;
   eventId?: string;
+  receiptNumber?: string;
+  receiptDate?: string;
+  receiptUrl?: string; // We'll store Base64 here
+  memberContributions?: MemberContribution[];
   createdAt: string;
 }
 

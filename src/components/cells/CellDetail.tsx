@@ -27,11 +27,11 @@ export const CellDetail: React.FC<{ cellId: string; onBack: () => void }> = ({
   onBack,
 }) => {
   const { profile, hasRole } = useAuth();
-  const [activeTab, setActiveTab] = useState<"chat" | "meetings" | "people">(
-    "chat",
-  );
+  const [activeTab, setActiveTab] = useState<"chat" | "meetings" | "people">("chat");
+  const [showManage, setShowManage] = useState(false);
   const [cell, setCell] = useState<PrayerCell | null>(null);
   const [meetings, setMeetings] = useState<CellMeeting[]>([]);
+  const [joinRequests, setJoinRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [cellUsersMap, setCellUsersMap] = useState<Record<string, any>>({});
   const [showAddMeeting, setShowAddMeeting] = useState(false);
@@ -61,9 +61,23 @@ export const CellDetail: React.FC<{ cellId: string; onBack: () => void }> = ({
   const fetchData = async () => {
     const cellData = await dbService.getPrayerCell(cellId);
     const meetingsData = await dbService.getCellMeetings(cellId);
+    
     if (cellData) {
       const data = cellData as any;
       setCell(data);
+      
+      const isUserCellAdmin = 
+        (data.parentIds || []).includes(profile?.uid || "") ||
+        (data.leaderIds || []).includes(profile?.uid || "") ||
+        hasRole([UserRole.ADMIN, UserRole.PRAYER_CELL_SECRETARY]);
+
+      if (isUserCellAdmin) {
+        const requestsData = await dbService.getCellJoinRequests(cellId);
+        if (requestsData) setJoinRequests(requestsData);
+      } else {
+        setJoinRequests([]);
+      }
+
       const allIds = Array.from(
         new Set([
           ...(data.memberIds || []),
@@ -167,8 +181,8 @@ export const CellDetail: React.FC<{ cellId: string; onBack: () => void }> = ({
 
   const isCellAdmin =
     cell &&
-    (cell.parentIds.includes(profile?.uid || "") ||
-      cell.leaderIds.includes(profile?.uid || "") ||
+    ((cell.parentIds || []).includes(profile?.uid || "") ||
+      (cell.leaderIds || []).includes(profile?.uid || "") ||
       hasRole([UserRole.ADMIN, UserRole.PRAYER_CELL_SECRETARY]));
 
   if (loading || !cell)
@@ -181,29 +195,105 @@ export const CellDetail: React.FC<{ cellId: string; onBack: () => void }> = ({
   return (
     <div className="space-y-8 pb-20">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={onBack}
-          className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-900 transition-colors"
-        >
-          <ChevronLeft size={24} />
-        </button>
-        <div>
-          <h1 className="text-3xl font-light tracking-tight text-slate-900 leading-tight">
-            {cell.name}
-          </h1>
-          <div className="flex items-center gap-3 mt-1">
-            <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-slate-100 text-slate-500 border border-slate-200">
-              {cell.genderType} &bull; {cell.type}
-            </span>
-            <span className="text-xs text-slate-400 font-medium">
-              {cell.memberIds.length} Members
-            </span>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => showManage ? setShowManage(false) : onBack()}
+            className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-900 transition-colors"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <div>
+            <h1 className="text-3xl font-light tracking-tight text-slate-900 leading-tight">
+              {showManage ? "Manage Cell" : cell.name}
+            </h1>
+            {!showManage && (
+              <div className="flex items-center gap-3 mt-1">
+                <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-slate-100 text-slate-500 border border-slate-200">
+                  {cell.genderType} &bull; {cell.type}
+                </span>
+                <span className="text-xs text-slate-400 font-medium">
+                  {cell.memberIds?.length || 0} Members
+                </span>
+              </div>
+            )}
           </div>
         </div>
+        {isCellAdmin && !showManage && (
+          <button
+            onClick={() => setShowManage(true)}
+            className="self-start md:self-auto flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-slate-50 transition-all bg-white"
+          >
+            Manage Cell
+          </button>
+        )}
       </div>
 
-      {/* Mobile Navigation */}
+      {showManage ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-6">
+             <h2 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-4">Cell Details</h2>
+             <div className="space-y-4">
+               <div>
+                 <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Name</span>
+                 <p className="text-slate-900 font-medium">{cell.name}</p>
+               </div>
+               <div>
+                 <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Category</span>
+                 <p className="text-slate-900 font-medium">{cell.category} • {cell.place || cell.region || 'N/A'}</p>
+               </div>
+               <div>
+                 <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Type</span>
+                 <p className="text-slate-900 font-medium">{cell.type} • {cell.genderType}</p>
+               </div>
+               <div>
+                 <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Invite Link</span>
+                 <div className="flex items-center justify-between mt-1 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                   <span className="text-xs font-mono text-slate-600 truncate mr-4">{shareLink}</span>
+                   <button onClick={handleCopyLink} className="text-[10px] font-bold text-slate-900 uppercase tracking-widest hover:text-indigo-600 transition-colors whitespace-nowrap">Copy</button>
+                 </div>
+               </div>
+             </div>
+          </div>
+          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-6">
+             <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+               <h2 className="text-lg font-bold text-slate-900">Join Requests</h2>
+               <span className="px-2 py-1 bg-amber-50 text-amber-600 rounded-lg text-xs font-bold">{(joinRequests || []).length} Pending</span>
+             </div>
+             
+             {(!joinRequests || joinRequests.length === 0) ? (
+               <div className="py-8 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">No pending requests</div>
+             ) : (
+               <div className="space-y-4">
+                 {joinRequests.map(req => (
+                   <div key={req.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col gap-3">
+                      <div>
+                        <p className="font-bold text-slate-900">{req.userName}</p>
+                        <p className="text-xs text-slate-500">{req.email} • {req.phone}</p>
+                        {req.college && <p className="text-xs text-slate-500 mt-1">{req.college}</p>}
+                      </div>
+                      <div className="flex gap-2">
+                         <button onClick={async () => {
+                           await dbService.updateJoinRequest(req.id, 'approved');
+                           // Add to memberIds
+                           const newMemberIds = [...(cell.memberIds || []), req.userId];
+                           await dbService.updatePrayerCell(cellId, { memberIds: newMemberIds });
+                           await fetchData();
+                         }} className="flex-1 py-2 bg-emerald-500 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-600 transition-colors">Approve</button>
+                         <button onClick={async () => {
+                           await dbService.updateJoinRequest(req.id, 'rejected');
+                           await fetchData();
+                         }} className="flex-1 py-2 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-rose-100 transition-colors">Reject</button>
+                      </div>
+                   </div>
+                 ))}
+               </div>
+             )}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Mobile Navigation */}
       <div className="lg:hidden flex mb-6 bg-slate-100/50 p-1 rounded-2xl">
         {(["chat", "meetings", "people"] as const).map((tab) => (
           <button
@@ -394,7 +484,7 @@ export const CellDetail: React.FC<{ cellId: string; onBack: () => void }> = ({
                       <div className="mt-4 bg-slate-50 rounded-xl p-4 border border-slate-100">
                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Mark Cell Members Present</div>
                         <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
-                          {cell.memberIds.map(memberId => {
+                          {(cell.memberIds || []).map(memberId => {
                             const user = cellUsersMap[memberId];
                             const isPresent = !!meeting.attendance[memberId];
                             return (
@@ -433,7 +523,7 @@ export const CellDetail: React.FC<{ cellId: string; onBack: () => void }> = ({
                               </label>
                             );
                           })}
-                          {cell.memberIds.length === 0 && (
+                          {(!cell.memberIds || cell.memberIds.length === 0) && (
                             <p className="text-xs text-slate-400 italic">No members in cell.</p>
                           )}
                         </div>
@@ -633,6 +723,8 @@ export const CellDetail: React.FC<{ cellId: string; onBack: () => void }> = ({
           {/* Quick chat removed */}
         </div>
       </div>
+      </>
+      )}
 
       {/* Add Meeting Modal */}
       <AnimatePresence>

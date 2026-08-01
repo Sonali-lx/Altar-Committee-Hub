@@ -227,6 +227,27 @@ service cloud.firestore {
       allow delete: if isVerified() && existing().userId == request.auth.uid;
     }
 
+    // Join Requests
+    match /joinRequests/{requestId} {
+      function isOwner() {
+        return isSignedIn() && (resource == null || resource.data.userId == request.auth.uid);
+      }
+      function isCellAdmin() {
+        let cellId = (resource != null) ? resource.data.cellId : incoming().cellId;
+        let cell = get(/databases/$(database)/documents/prayerCells/$(cellId)).data;
+        return isSignedIn() && (
+          hasRole('PRAYER_CELL_SECRETARY') ||
+          isAdmin() ||
+          ('parentIds' in cell && request.auth.uid in cell.parentIds) ||
+          ('leaderIds' in cell && request.auth.uid in cell.leaderIds)
+        );
+      }
+
+      allow read: if isOwner() || isCellAdmin();
+      allow create: if isVerified() && incoming().userId == request.auth.uid;
+      allow update, delete: if isVerified() && (isOwner() || isCellAdmin());
+    }
+
     // Journals
     match /journals/{document=**} {
       allow read, write: if isSignedIn();
