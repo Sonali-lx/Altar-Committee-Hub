@@ -173,6 +173,14 @@ service cloud.firestore {
       allow update: if isSignedIn();
       allow delete: if isAdmin();
     }
+
+    match /committeeChat/{messageId} {
+      function isCommitteeMember() { 
+        return getUserRoles().hasAny(['SENIOR_ADVISOR', 'PRESIDENT', 'SECRETARY', 'TREASURER', 'PRAYER_SECRETARY', 'PRAYER_CELL_SECRETARY', 'ADMIN']);
+      }
+      allow read, create: if isSignedIn() && (isCommitteeMember() || isAdmin());
+      allow update, delete: if isAdmin();
+    }
     
     // Settings
     match /settings/{docId} {

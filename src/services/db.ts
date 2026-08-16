@@ -893,4 +893,28 @@ export const dbService = {
       handleFirestoreError(e, OperationType.CREATE, "communityChat");
     }
   },
+
+  // Committee Chat
+  subscribeCommitteeChat(callback: (messages: any[]) => void) {
+    const q = query(collection(db, "committeeChat"), orderBy("createdAt", "asc"));
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, "committeeChat");
+    });
+  },
+
+  async sendCommitteeChatMessage(authorId: string, authorName: string, text: string, authorRole?: string) {
+    try {
+      await addDoc(collection(db, "committeeChat"), {
+        authorId,
+        authorName,
+        authorRole: authorRole || 'Committee Member',
+        text,
+        createdAt: new Date().toISOString()
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, "committeeChat");
+    }
+  },
 };

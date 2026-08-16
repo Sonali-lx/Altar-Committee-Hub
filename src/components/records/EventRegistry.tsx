@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { dbService } from '../../services/db';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Calendar, Users, MapPin, Search, Plus, X } from 'lucide-react';
+import { ChevronLeft, Calendar, Users, MapPin, Search, Plus, X, Folder, BookOpen, ChevronRight, Layers, ArrowLeft, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
 import { fileToBase64 } from '../../utils/fileUtils';
@@ -154,9 +154,13 @@ export const EventRegistry: React.FC<{ onBack: () => void, initialCollectionId?:
      return <div className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">Loading Event Records...</div>;
   }
 
+  const isViewingCategory = selectedCollectionId !== null;
+  const currentCollection = collections.find(c => c.id === selectedCollectionId);
+  const activeTitle = selectedCollectionId === 'ALL' ? 'All Events Archive' : (currentCollection?.name || 'Category Events');
+
   const filteredEvents = events.filter(e => {
      let match = true;
-     if (selectedCollectionId) {
+     if (selectedCollectionId && selectedCollectionId !== 'ALL') {
         match = e.collectionIds?.includes(selectedCollectionId);
      }
      if (search && match) {
@@ -167,150 +171,368 @@ export const EventRegistry: React.FC<{ onBack: () => void, initialCollectionId?:
 
   return (
     <div className="space-y-6 relative">
+      {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between items-start gap-4">
         <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-900 transition-colors">
-            <ChevronLeft size={24} />
-          </button>
-          <div>
-            <h2 className="text-2xl font-light tracking-tight text-slate-900">Event Registry</h2>
-            <p className="text-sm text-slate-500 font-medium">Historical records of all official events and attendance.</p>
-          </div>
-        </div>
-        {canCreate && (
           <button 
             onClick={() => {
-              setSelectedEventCollectionIds(selectedCollectionId ? [selectedCollectionId] : []);
-              setShowCreateModal(true);
-            }}
-            className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200"
+              if (isViewingCategory) {
+                setSelectedCollectionId(null);
+                setSearch('');
+              } else {
+                onBack();
+              }
+            }} 
+            className="p-2.5 hover:bg-slate-100 rounded-2xl text-slate-400 hover:text-slate-900 transition-colors bg-white border border-slate-200/70 shadow-sm"
+            title={isViewingCategory ? "Back to Categories" : "Back to Archives"}
           >
-            <Plus size={16} /> Add Event Record
+            <ChevronLeft size={22} />
           </button>
-        )}
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                {isViewingCategory ? 'Event Registry / Sub-Category' : 'Archives & Records'}
+              </span>
+            </div>
+            <h2 className="text-2xl md:text-3xl font-light tracking-tight text-slate-900">
+              {isViewingCategory ? activeTitle : 'Event Registry'}
+            </h2>
+            <p className="text-sm text-slate-500 font-medium">
+              {isViewingCategory 
+                ? `Showing ${filteredEvents.length} recorded event(s) in this archive.` 
+                : 'Official committee event archives categorized by ministry and program.'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {canCreate && (
+            <button 
+              onClick={() => setShowManageCollections(true)}
+              className="flex items-center gap-2 px-4 py-3 bg-indigo-50 text-indigo-700 rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-indigo-100 transition-colors border border-indigo-100"
+            >
+              <Settings size={14} /> Categories
+            </button>
+          )}
+          {canCreate && (
+            <button 
+              onClick={() => {
+                setSelectedEventCollectionIds(selectedCollectionId && selectedCollectionId !== 'ALL' ? [selectedCollectionId] : []);
+                setShowCreateModal(true);
+              }}
+              className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200"
+            >
+              <Plus size={16} /> Add Event Record
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-2 border-b border-slate-100 no-scrollbar">
-        <button 
-          onClick={() => setSelectedCollectionId(null)}
-          className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors ${!selectedCollectionId ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-        >
-          All Events
-        </button>
-        {collections.map(c => (
-           <button
-             key={c.id}
-             onClick={() => setSelectedCollectionId(c.id)}
-             className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors flex items-center gap-2 ${selectedCollectionId === c.id ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-           >
-             {c.name}
-           </button>
-        ))}
-        {canCreate && (
-          <button 
-            onClick={() => setShowManageCollections(true)}
-            className="px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors flex items-center gap-1"
-          >
-            <Plus size={16} /> Add Collection
-          </button>
-        )}
-      </div>
+      {/* VIEW 1: Sub-Parts & Categories Dashboard (when no category is selected) */}
+      {!isViewingCategory && (
+        <div className="space-y-8">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <Layers size={14} />
+                <span>Event Categories & Sub-Parts</span>
+              </h3>
+              <span className="text-xs text-slate-400 font-medium">{collections.length + 1} Categories Available</span>
+            </div>
 
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-2 flex items-center gap-3">
-        <div className="p-3 text-slate-400"><Search size={20} /></div>
-        <input 
-          type="text" 
-          placeholder="Search events by name or theme..." 
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="flex-1 bg-transparent px-2 py-3 outline-none text-sm font-medium text-slate-900"
-        />
-      </div>
-
-      <div className="space-y-4">
-        {filteredEvents.map((ev, idx) => {
-           const evDate = new Date(`${ev.date}T${ev.time || '00:00'}`);
-           const attendees = Object.keys(ev.attendance || {}).filter(uid => ev.attendance[uid]);
-           return (
-             <motion.div 
-                key={ev.id}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {/* All Events Summary Card */}
+              <motion.div
+                onClick={() => setSelectedCollectionId('ALL')}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05 }}
-                className="bg-white rounded-3xl border border-slate-100 p-6 flex flex-col md:flex-row gap-6 shadow-sm"
-             >
-                <div className="flex flex-col items-center justify-center w-16 h-16 rounded-2xl bg-slate-50 text-slate-500 shrink-0 border border-slate-100">
-                  <span className="text-[10px] font-bold uppercase tracking-widest">{format(evDate, 'MMM')}</span>
-                  <span className="text-xl font-bold text-slate-900">{format(evDate, 'dd')}</span>
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-1">
-                    <h3 className="text-lg font-bold text-slate-900 truncate">{ev.eventName}</h3>
-                    <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest bg-emerald-50 text-emerald-600 border border-emerald-100">
-                      {ev.isOnline ? 'Online' : 'Offline'}
+                className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all cursor-pointer group flex flex-col justify-between min-h-[160px]"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-md">
+                      <Calendar size={22} />
+                    </div>
+                    <span className="text-xs font-bold px-3 py-1 bg-slate-100 text-slate-700 rounded-full">
+                      {events.length} Total
                     </span>
                   </div>
-                  {ev.theme && <p className="text-sm text-slate-600 font-medium truncate mb-1">Theme: {ev.theme}</p>}
-                  {ev.extraNote && <div className="text-sm text-amber-800 bg-amber-50 p-2 rounded border border-amber-100 my-2">{ev.extraNote}</div>}
-                  {ev.posterUrl && <img src={ev.posterUrl} alt="Poster" className="max-h-32 rounded object-cover my-2 border border-slate-100 shadow-sm" />}
-                  
-                  <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-slate-500 font-medium">
-                    <span className="flex items-center gap-1.5"><Calendar size={14} /> {format(evDate, 'h:mm a')}</span>
-                    <span className="flex items-center gap-1.5"><MapPin size={14} /> {ev.isOnline ? 'Google Meet' : (ev.venue || 'TBD')}</span>
-                    <span className="flex items-center gap-1.5"><Users size={14} /> {attendees.length} Attendees</span>
-                  </div>
-
-                  {canCreate && (
-                    <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100">
-                      <button 
-                        onClick={() => setShowAddToCollection({eventId: ev.id, currentIds: ev.collectionIds || []})}
-                        className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg uppercase tracking-widest hover:bg-indigo-100 transition-colors"
-                      >
-                        Collections
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteEvent(ev.id)}
-                        className="text-[10px] font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg uppercase tracking-widest hover:bg-red-100 transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
-
-                  {attendees.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-slate-100">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Attendee Roster</p>
-                      <div className="flex flex-wrap gap-2">
-                        {attendees.map(uid => {
-                          const u = usersMap[uid];
-                          if (!u) return null;
-                          return (
-                            <div key={uid} className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
-                               {u.photoURL ? (
-                                  <img src={u.photoURL} alt={u.name} className="w-4 h-4 rounded-full object-cover" />
-                               ) : (
-                                  <div className="w-4 h-4 rounded-full bg-slate-200 flex flex-col items-center justify-center text-[8px] font-bold text-slate-600">
-                                    {u.name.charAt(0)}
-                                  </div>
-                               )}
-                               <span className="text-xs font-bold text-slate-700">{u.name.split(' ')[0]}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+                  <h4 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                    All Events Archive
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    View complete chronological list across all categories.
+                  </p>
                 </div>
-             </motion.div>
-           );
-        })}
-        {filteredEvents.length === 0 && (
-          <div className="py-20 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No events found</p>
+                <div className="flex items-center gap-1 text-[10px] font-bold text-slate-900 uppercase tracking-widest pt-4 mt-2 border-t border-slate-100 group-hover:text-indigo-600">
+                  <span>Browse All</span>
+                  <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                </div>
+              </motion.div>
+
+              {/* Individual Collection Sub-Part Cards */}
+              {collections.map((col, idx) => {
+                const count = events.filter(e => e.collectionIds?.includes(col.id)).length;
+                return (
+                  <motion.div
+                    key={col.id}
+                    onClick={() => setSelectedCollectionId(col.id)}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: (idx + 1) * 0.04 }}
+                    className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all cursor-pointer group flex flex-col justify-between min-h-[160px]"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                          <Folder size={22} />
+                        </div>
+                        <span className="text-xs font-bold px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100">
+                          {count} {count === 1 ? 'Event' : 'Events'}
+                        </span>
+                      </div>
+                      <h4 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                        {col.name}
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                        Historical records and attendance logs for {col.name}.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-slate-900 uppercase tracking-widest pt-4 mt-2 border-t border-slate-100 group-hover:text-indigo-600">
+                      <span>Open Category</span>
+                      <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </motion.div>
+                );
+              })}
+
+              {/* Add New Category Card */}
+              {canCreate && (
+                <div
+                  onClick={() => setShowManageCollections(true)}
+                  className="bg-slate-50/70 p-6 rounded-3xl border-2 border-dashed border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer flex flex-col items-center justify-center text-center group min-h-[160px]"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center mb-2 group-hover:scale-110 group-hover:border-indigo-300 text-slate-400 group-hover:text-indigo-600 transition-all shadow-sm">
+                    <Plus size={20} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-700 group-hover:text-indigo-600 uppercase tracking-widest">
+                    Add Category
+                  </span>
+                  <p className="text-[11px] text-slate-400 mt-1 font-medium">Create a new event sub-part</p>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Recent Events Preview */}
+          {events.length > 0 && (
+            <div className="pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Calendar size={14} />
+                  <span>Recent Event Activity</span>
+                </h3>
+                <button
+                  onClick={() => setSelectedCollectionId('ALL')}
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 uppercase tracking-widest"
+                >
+                  View All ({events.length}) →
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {events.slice(0, 4).map((ev) => {
+                  const evDate = new Date(`${ev.date}T${ev.time || '00:00'}`);
+                  const attendees = Object.keys(ev.attendance || {}).filter(uid => ev.attendance[uid]);
+                  const catNames = (ev.collectionIds || [])
+                    .map((id: string) => collections.find(c => c.id === id)?.name)
+                    .filter(Boolean);
+
+                  return (
+                    <div
+                      key={ev.id}
+                      onClick={() => {
+                        if (ev.collectionIds && ev.collectionIds.length > 0) {
+                          setSelectedCollectionId(ev.collectionIds[0]);
+                        } else {
+                          setSelectedCollectionId('ALL');
+                        }
+                      }}
+                      className="p-4 bg-white rounded-2xl border border-slate-100 hover:border-slate-200 shadow-sm flex items-center gap-4 cursor-pointer hover:shadow-md transition-all group"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-slate-50 flex flex-col items-center justify-center shrink-0 border border-slate-100 text-slate-600">
+                        <span className="text-[9px] font-bold uppercase">{format(evDate, 'MMM')}</span>
+                        <span className="text-base font-bold text-slate-900">{format(evDate, 'dd')}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h5 className="text-sm font-bold text-slate-900 truncate group-hover:text-indigo-600 transition-colors">
+                          {ev.eventName}
+                        </h5>
+                        <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                          <span>{ev.isOnline ? 'Online' : (ev.venue || 'In-person')}</span>
+                          <span>&bull;</span>
+                          <span>{attendees.length} Attendees</span>
+                        </div>
+                        {catNames.length > 0 && (
+                          <div className="flex gap-1 mt-1.5 flex-wrap">
+                            {catNames.map((cn: string) => (
+                              <span key={cn} className="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest bg-indigo-50 text-indigo-600">
+                                {cn}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <ChevronRight size={16} className="text-slate-300 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VIEW 2: Filtered Events List View (when a category is selected) */}
+      {isViewingCategory && (
+        <div className="space-y-6">
+          {/* Category Switcher Pills */}
+          <div className="flex gap-2 overflow-x-auto pb-2 border-b border-slate-100 no-scrollbar items-center">
+            <button 
+              onClick={() => setSelectedCollectionId('ALL')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors ${selectedCollectionId === 'ALL' ? 'bg-slate-900 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              All Events ({events.length})
+            </button>
+            {collections.map(c => {
+              const count = events.filter(e => e.collectionIds?.includes(c.id)).length;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedCollectionId(c.id)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1.5 ${selectedCollectionId === c.id ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                >
+                  <Folder size={12} />
+                  <span>{c.name} ({count})</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search bar */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-2 flex items-center gap-3">
+            <div className="p-2.5 text-slate-400"><Search size={18} /></div>
+            <input 
+              type="text" 
+              placeholder={`Search in ${activeTitle}...`} 
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="flex-1 bg-transparent px-2 py-2 outline-none text-sm font-medium text-slate-900"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="p-2 text-slate-400 hover:text-slate-600">
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* Events List */}
+          <div className="space-y-4">
+            {filteredEvents.map((ev, idx) => {
+               const evDate = new Date(`${ev.date}T${ev.time || '00:00'}`);
+               const attendees = Object.keys(ev.attendance || {}).filter(uid => ev.attendance[uid]);
+               const catNames = (ev.collectionIds || [])
+                 .map((id: string) => collections.find(c => c.id === id)?.name)
+                 .filter(Boolean);
+
+               return (
+                 <motion.div 
+                    key={ev.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.04 }}
+                    className="bg-white rounded-3xl border border-slate-200/80 p-6 flex flex-col md:flex-row gap-6 shadow-sm hover:shadow-md transition-shadow"
+                 >
+                    <div className="flex flex-col items-center justify-center w-16 h-16 rounded-2xl bg-slate-50 text-slate-500 shrink-0 border border-slate-100">
+                      <span className="text-[10px] font-bold uppercase tracking-widest">{format(evDate, 'MMM')}</span>
+                      <span className="text-xl font-bold text-slate-900">{format(evDate, 'dd')}</span>
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1 flex-wrap">
+                        <h3 className="text-lg font-bold text-slate-900 truncate">{ev.eventName}</h3>
+                        <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-emerald-50 text-emerald-600 border border-emerald-100">
+                          {ev.isOnline ? 'Online' : 'Offline'}
+                        </span>
+                        {catNames.map((cn: string) => (
+                          <span key={cn} className="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-indigo-50 text-indigo-600 border border-indigo-100">
+                            {cn}
+                          </span>
+                        ))}
+                      </div>
+                      {ev.theme && <p className="text-sm text-slate-600 font-medium truncate mb-1">Theme: {ev.theme}</p>}
+                      {ev.speaker && <p className="text-xs text-slate-500 font-medium mb-1">Speaker: <span className="text-slate-800 font-semibold">{ev.speaker}</span></p>}
+                      {ev.extraNote && <div className="text-sm text-amber-800 bg-amber-50 p-3 rounded-xl border border-amber-100 my-2">{ev.extraNote}</div>}
+                      {ev.posterUrl && <img src={ev.posterUrl} alt="Poster" className="max-h-36 rounded-xl object-cover my-2 border border-slate-100 shadow-sm" />}
+                      
+                      <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-slate-500 font-medium">
+                        <span className="flex items-center gap-1.5"><Calendar size={14} /> {format(evDate, 'h:mm a')}</span>
+                        <span className="flex items-center gap-1.5"><MapPin size={14} /> {ev.isOnline ? (ev.meetLink ? <a href={ev.meetLink} target="_blank" rel="noreferrer" className="text-indigo-600 underline">Join Google Meet</a> : 'Google Meet') : (ev.venue || 'TBD')}</span>
+                        <span className="flex items-center gap-1.5"><Users size={14} /> {attendees.length} Attendees</span>
+                      </div>
+
+                      {canCreate && (
+                        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100">
+                          <button 
+                            onClick={() => setShowAddToCollection({eventId: ev.id, currentIds: ev.collectionIds || []})}
+                            className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg uppercase tracking-widest hover:bg-indigo-100 transition-colors"
+                          >
+                            Assign Categories
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteEvent(ev.id)}
+                            className="text-[10px] font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg uppercase tracking-widest hover:bg-red-100 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+
+                      {attendees.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-slate-100">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Attendee Roster ({attendees.length})</p>
+                          <div className="flex flex-wrap gap-2">
+                            {attendees.map(uid => {
+                              const u = usersMap[uid];
+                              if (!u) return null;
+                              return (
+                                <div key={uid} className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
+                                   {u.photoURL ? (
+                                      <img src={u.photoURL} alt={u.name} className="w-4 h-4 rounded-full object-cover" />
+                                   ) : (
+                                      <div className="w-4 h-4 rounded-full bg-slate-200 flex flex-col items-center justify-center text-[8px] font-bold text-slate-600">
+                                        {u.name?.charAt(0) || 'M'}
+                                      </div>
+                                   )}
+                                   <span className="text-xs font-bold text-slate-700">{u.name?.split(' ')[0]}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                 </motion.div>
+               );
+            })}
+            {filteredEvents.length === 0 && (
+              <div className="py-20 text-center bg-white rounded-3xl border border-dashed border-slate-200">
+                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No events found in this category</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <AnimatePresence>
         {showCreateModal && (

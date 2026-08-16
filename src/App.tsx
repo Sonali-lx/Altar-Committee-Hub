@@ -18,6 +18,7 @@ import { JournalPage } from './components/journal/JournalPage';
 import { DawnDuskPrayers } from './components/prayer/DawnDuskPrayers';
 import { CommunityFeed } from './components/community/CommunityFeed';
 import { CommunityChat } from './components/community/CommunityChat';
+import { CommitteeChat } from './components/community/CommitteeChat';
 import { AnimatePresence, motion } from 'motion/react';
 import { dbService } from './services/db';
 
@@ -104,7 +105,7 @@ const AppContent: React.FC = () => {
       case 'chat-realtime':
         return <CommunityChat />;
       case 'chat-cmte':
-        return <div className="p-8 text-slate-500 font-bold">Committee Chat coming soon...</div>;
+        return <CommitteeChat />;
       case 'records':
         return <RecordsManager />;
       case 'admin':

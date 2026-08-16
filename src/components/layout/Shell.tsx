@@ -14,9 +14,12 @@ import {
   SunMoon,
   Clock,
   Menu,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import { UserRole } from '../../types';
+import { MobileNavBar } from './MobileNavBar';
+import { BibleAIChatbot } from '../ai/BibleAIChatbot';
 
 interface SidebarItemProps {
   icon: React.ElementType;
@@ -51,6 +54,7 @@ export const Shell: React.FC<{ children: React.ReactNode, activeTab: string, set
   const { user, profile, logOut, hasRole } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
 
   React.useEffect(() => {
     setMobileMenuOpen(false);
@@ -257,22 +261,29 @@ export const Shell: React.FC<{ children: React.ReactNode, activeTab: string, set
           </div>
         </aside>
 
-        {/* Content Area */}
-        <main className="flex-1 overflow-y-auto w-full p-4 md:p-8">
+      {/* Content Area */}
+        <main className="flex-1 overflow-y-auto w-full p-4 md:p-8 pb-20 md:pb-8">
           <div className="max-w-6xl mx-auto pb-12">
             {children}
           </div>
         </main>
       </div>
 
+      {/* Mobile Bottom Bar */}
+      <MobileNavBar
+        activeTab={activeTab}
+        onTabSelect={(t) => handleTabClick(t)}
+        onOpenMenu={() => setMobileMenuOpen(true)}
+      />
+
       {/* Footer Info (Minimal) */}
-      <footer className="h-8 bg-white border-t border-slate-200 px-4 md:px-8 flex items-center justify-between shrink-0">
+      <footer className="hidden md:flex h-8 bg-white border-t border-slate-200 px-4 md:px-8 items-center justify-between shrink-0">
         <div className="flex gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
           <div className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="hidden md:inline">Authenticated</span>
+            <span>Authenticated</span>
           </div>
-          <div className="hidden md:flex items-center gap-1">
+          <div className="flex items-center gap-1">
             <Clock size={10} />
             <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
@@ -283,6 +294,22 @@ export const Shell: React.FC<{ children: React.ReactNode, activeTab: string, set
       <EditProfileModal 
         isOpen={isEditProfileOpen} 
         onClose={() => setIsEditProfileOpen(false)} 
+      />
+
+      {/* Floating AI Assistant Button */}
+      <button
+        onClick={() => setIsAIChatOpen(true)}
+        className="fixed bottom-20 md:bottom-8 right-5 z-40 bg-indigo-600 hover:bg-indigo-700 text-white p-3.5 rounded-full shadow-xl flex items-center gap-2 transition-all hover:scale-105 border border-indigo-400/30 group"
+        title="Open Bible AI Assistant"
+      >
+        <Sparkles size={20} className="animate-pulse" />
+        <span className="text-xs font-bold tracking-tight pr-1 hidden sm:inline">Bible AI</span>
+      </button>
+
+      {/* Bible AI Chatbot Modal */}
+      <BibleAIChatbot
+        isOpen={isAIChatOpen}
+        onClose={() => setIsAIChatOpen(false)}
       />
     </div>
   );

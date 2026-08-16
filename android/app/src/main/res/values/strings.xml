@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Altar Hub</string>
+    <string name="title_activity_main">Altar Hub</string>
+    <string name="package_name">com.altar.committeehub</string>
+    <string name="custom_url_scheme">com.altar.committeehub</string>
+</resources>
