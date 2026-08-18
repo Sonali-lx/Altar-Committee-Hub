@@ -2,13 +2,18 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
   onAuthStateChanged, 
   signInWithPopup, 
+  signInWithCredential,
   GoogleAuthProvider, 
   User, 
   signOut 
 } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
+import { SocialLogin } from '@capgo/capacitor-social-login';
 import { auth } from '../lib/firebase';
 import { dbService } from '../services/db';
 import { UserProfile, UserRole } from '../types';
+
+const GOOGLE_WEB_CLIENT_ID = '825490865095-se97g4od9joef3s81q427rna44efad8m.apps.googleusercontent.com';
 
 interface AuthContextType {
   user: User | null;
@@ -26,6 +31,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Initialize native social login on native mobile platforms
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      SocialLogin.initialize({
+        google: {
+          webClientId: GOOGLE_WEB_CLIENT_ID,
+          mode: 'online',
+        }
+      }).catch((err) => {
+        console.error('[AUTH] Failed to initialize native SocialLogin:', err);
+      });
+    }
+  }, []);
 
   const refreshProfile = async () => {
     if (user) {
@@ -55,11 +74,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    if (Capacitor.isNativePlatform()) {
+      console.log('[AUTH] Starting Google sign-in (Native Android/iOS)');
+      try {
+        await SocialLogin.initialize({
+          google: {
+            webClientId: GOOGLE_WEB_CLIENT_ID,
+            mode: 'online',
+          }
+        });
+      } catch (initErr) {
+        console.warn('[AUTH] SocialLogin.initialize warning:', initErr);
+      }
+
+      const loginRes = await SocialLogin.login({
+        provider: 'google',
+        options: {
+          scopes: ['email', 'profile'],
+        }
+      });
+
+      console.log('[AUTH] Native Google sign-in response received');
+      const idToken = (loginRes.result as any)?.idToken;
+
+      if (!idToken) {
+        throw new Error('Google sign-in was cancelled or returned no ID token.');
+      }
+
+      console.log('[AUTH] Creating Firebase credential from Google ID token');
+      const credential = GoogleAuthProvider.credential(idToken);
+      await signInWithCredential(auth, credential);
+      console.log('[AUTH] Firebase signInWithCredential completed successfully');
+    } else {
+      console.log('[AUTH] Starting Google sign-in (Web/Desktop Popup)');
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      console.log('[AUTH] Web signInWithPopup completed successfully');
+    }
   };
 
   const logOut = async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await SocialLogin.logout({ provider: 'google' });
+      } catch (err) {
+        console.warn('[AUTH] Native Google logout warning (ignored):', err);
+      }
+    }
     await signOut(auth);
   };
 

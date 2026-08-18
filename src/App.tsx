@@ -19,6 +19,7 @@ import { DawnDuskPrayers } from './components/prayer/DawnDuskPrayers';
 import { CommunityFeed } from './components/community/CommunityFeed';
 import { CommunityChat } from './components/community/CommunityChat';
 import { CommitteeChat } from './components/community/CommitteeChat';
+import { LandingPage } from './components/landing/LandingPage';
 import { AnimatePresence, motion } from 'motion/react';
 import { dbService } from './services/db';
 
@@ -27,6 +28,10 @@ const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
   const [showCreateCell, setShowCreateCell] = useState(false);
+  const [publicView, setPublicView] = useState<'landing' | 'login'>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('login') === 'true' || params.get('invite') || params.get('joinCell') ? 'login' : 'landing';
+  });
 
   React.useEffect(() => {
     const processInvite = async () => {
@@ -64,7 +69,10 @@ const AppContent: React.FC = () => {
   }
 
   if (!user) {
-    return <Login />;
+    if (publicView === 'login') {
+      return <Login onBackToLanding={() => setPublicView('landing')} />;
+    }
+    return <LandingPage onOpenApp={() => setPublicView('login')} />;
   }
 
   if (user && !profile) {

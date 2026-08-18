@@ -3,12 +3,47 @@ import { useAuth } from '../../context/AuthContext';
 import { Shield, Sparkles, MessageCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
-export const Login: React.FC = () => {
+interface LoginProps {
+  onBackToLanding?: () => void;
+}
+
+export const Login: React.FC<LoginProps> = ({ onBackToLanding }) => {
   const { signIn } = useAuth();
+  const [isSigningIn, setIsSigningIn] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const handleSignIn = async () => {
+    if (isSigningIn) return;
+    setError(null);
+    setIsSigningIn(true);
+    try {
+      await signIn();
+    } catch (err: any) {
+      console.error('[AUTH] Sign-in error:', err);
+      if (err?.message?.includes('cancelled') || err?.code === 'auth/popup-closed-by-user') {
+        setError('Sign-in was cancelled.');
+      } else if (err?.message?.includes('network') || err?.code === 'auth/network-request-failed') {
+        setError('Network error. Please check your internet connection.');
+      } else {
+        setError(err?.message || 'Unable to complete sign-in. Please try again.');
+      }
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-6 font-sans">
+    <div className="min-h-screen bg-white flex items-center justify-center p-6 font-sans relative">
       <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-30" />
+
+      {onBackToLanding && (
+        <button
+          onClick={onBackToLanding}
+          className="absolute top-6 left-6 z-20 text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 px-4 py-2 rounded-xl border border-slate-200 transition-colors flex items-center gap-1.5"
+        >
+          &larr; Back to Website
+        </button>
+      )}
       
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
@@ -46,12 +81,23 @@ export const Login: React.FC = () => {
             </div>
           </div>
 
+          {error && (
+            <div className="mb-6 p-3.5 bg-red-50 border border-red-200 rounded-2xl text-xs font-medium text-red-700 leading-relaxed text-center">
+              {error}
+            </div>
+          )}
+
           <button
-            onClick={signIn}
-            className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-800 transition-all active:scale-[0.98] shadow-lg shadow-slate-900/10"
+            onClick={handleSignIn}
+            disabled={isSigningIn}
+            className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-800 disabled:opacity-60 transition-all active:scale-[0.98] shadow-lg shadow-slate-900/10"
           >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5 bg-white p-1 rounded" alt="Google" />
-            Sign in with Google
+            {isSigningIn ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5 bg-white p-1 rounded" alt="Google" />
+            )}
+            {isSigningIn ? 'Signing in...' : 'Sign in with Google'}
           </button>
           
           <p className="text-[10px] text-slate-400 text-center mt-6 uppercase tracking-widest font-bold">
